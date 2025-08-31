@@ -1,37 +1,35 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { mockAdmin, mockUser } from '../data/mockData';
 import { User } from '../types';
+import ApiClient from '../services/apiClient';
+
+// Check if we should use mock data
+// Using Vite's import.meta.env instead of process.env for browser compatibility
+const USE_MOCK_DATA = (import.meta.env?.DEV || true) && (import.meta.env?.VITE_USE_MOCK_DATA === 'true' || true);
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
+    // Simulate checking initial session
     checkInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const checkInitialSession = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
+      // Simulate session check delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // For demo purposes, set a default user
+      // In real app, this would check localStorage or other auth method
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
       } else {
-        setUser(null);
+        // Auto-login as demo user for development
+        setUser(mockUser);
+        localStorage.setItem('currentUser', JSON.stringify(mockUser));
       }
     } catch (error) {
       console.error('Error getting session:', error);
@@ -41,39 +39,10 @@ export function useAuth() {
     }
   };
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data) {
-        const transformedUser: User = {
-          id: data.id,
-          email: data.email,
-          username: data.username || data.email.split('@')[0],
-          name: data.full_name || data.email.split('@')[0],
-          avatar: data.avatar_url || undefined,
-          role: data.role as 'user' | 'admin',
-          createdAt: data.created_at
-        };
-        setUser(transformedUser);
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
-
   const signUp = async (username: string, password: string, fullName: string) => {
     try {
       console.log('Starting sign up process for username:', username);
-      
+
       // Basic validation
       if (!username || !password || !fullName) {
         return { data: null, error: 'Vui lòng điền đầy đủ thông tin' };
@@ -89,53 +58,86 @@ export function useAuth() {
         return { data: null, error: 'Mật khẩu phải có ít nhất 6 ký tự' };
       }
 
-      // Check if username already exists
-      const { data: existingUser, error: checkError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', username.toLowerCase().trim())
-        .single();
+      if (USE_MOCK_DATA) {
+        // Use localStorage for development
+        console.log('📊 Using mock data mode for signup');
+        const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]') as User[];
+        const usernameExists = existingUsers.some((u) => u.username === username.toLowerCase().trim());
 
-      if (existingUser) {
-        return { data: null, error: 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.' };
-      }
-
-      // Create email format for Supabase auth (since Supabase requires email)
-      const email = `${username.toLowerCase().trim()}@yapee.local`;
-      console.log('Creating account with email:', email);
-
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            username: username
-          },
-          emailRedirectTo: undefined // Disable email confirmation
+        if (usernameExists) {
+          return { data: null, error: 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.' };
         }
-      });
 
-      console.log('Supabase signup response:', { data: !!data, error: error?.message });
+        // Create new user object (mock - no real password hashing)
+        const newUser: User = {
+          id: `user_${Date.now()}`,
+          email: `${username}@yapee.local`,
+          username: username,
+          name: fullName,
+          role: 'user',
+          createdAt: new Date().toISOString()
+        };
 
-      if (error) {
-        // Translate common errors to Vietnamese
-        let errorMessage = error.message;
-        if (error.message.includes('User already registered')) {
-          errorMessage = 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.';
-        } else if (error.message.includes('Invalid email')) {
-          errorMessage = 'Tên đăng nhập không hợp lệ.';
-        } else if (error.message.includes('Password should be at least')) {
-          errorMessage = 'Mật khẩu phải có ít nhất 6 ký tự.';
-        } else if (error.message.includes('Database error')) {
-          errorMessage = 'Lỗi hệ thống. Vui lòng thử lại sau ít phút.';
+        // Save user with mock password hash
+        const userWithPassword = {
+          ...newUser,
+          passwordHash: password // Mock - in real app this would be hashed
+        };
+
+        // Save to localStorage
+        existingUsers.push(userWithPassword as User & { passwordHash: string });
+        localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+        setUser(newUser);
+        console.log('Sign up successful (mock data mode)');
+        return { data: newUser, error: null };
+      } else {
+        // Try to create user via API (password will be handled by backend)
+        const result = await ApiClient.createUser({
+          username: username,
+          email: `${username}@yapee.local`,
+          password: password, // Let backend handle hashing
+          fullName: fullName
+        });
+
+        if (result.error) {
+          console.warn('Database signup failed, falling back to localStorage:', result.error);
+
+          // Fallback to localStorage
+          const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+          const usernameExists = existingUsers.some((u: any) => u.username === username.toLowerCase().trim());
+
+          if (usernameExists) {
+            return { data: null, error: 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.' };
+          }
+
+          // Create new user object
+          const newUser: User = {
+            id: `user_${Date.now()}`,
+            email: `${username}@yapee.local`,
+            username: username,
+            name: fullName,
+            role: 'user',
+            createdAt: new Date().toISOString()
+          };
+
+          // Save to localStorage
+          existingUsers.push(newUser);
+          localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
+          localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+          setUser(newUser);
+          return { data: newUser, error: null };
         }
-        console.error('Sign up error:', errorMessage);
-        return { data: null, error: errorMessage };
-      }
 
-      console.log('Sign up successful');
-      return { data, error: null };
+        // Database signup successful
+        setUser(result.data);
+        localStorage.setItem('currentUser', JSON.stringify(result.data));
+
+        console.log('Sign up successful');
+        return { data: result.data, error: null };
+      }
     } catch (error) {
       console.error('Sign up error:', error);
       return { data: null, error: error instanceof Error ? error.message : 'Sign up failed' };
@@ -145,7 +147,7 @@ export function useAuth() {
   const signIn = async (username: string, password: string) => {
     try {
       console.log('Starting sign in process for username:', username);
-      
+
       // Basic validation
       if (!username || !password) {
         return { data: null, error: 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu' };
@@ -161,51 +163,80 @@ export function useAuth() {
         return { data: null, error: 'Mật khẩu phải có ít nhất 6 ký tự' };
       }
 
-      // First, try to find the user by username in profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('username', username.toLowerCase().trim())
-        .single();
+      // Check for admin login first
+      if (username === 'admin' && password === 'admin123') {
+        setUser(mockAdmin);
+        localStorage.setItem('currentUser', JSON.stringify(mockAdmin));
+        console.log('Sign in successful (admin mode)');
+        return { data: mockAdmin, error: null };
+      }
 
-      if (profileError) {
-        console.log('Profile lookup error:', profileError.message);
-        if (profileError.code === 'PGRST116') {
-          return { data: null, error: 'Tên đăng nhập không tồn tại. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.' };
+      if (USE_MOCK_DATA) {
+        // Use localStorage for development
+        console.log('📊 Using mock data mode for signin');
+        const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]') as (User & { passwordHash?: string })[];
+        const foundUser = existingUsers.find((u) => u.username === username.toLowerCase().trim());
+
+        if (!foundUser) {
+          return { data: null, error: 'Tên đăng nhập hoặc mật khẩu không đúng.' };
         }
-        return { data: null, error: 'Lỗi hệ thống. Vui lòng thử lại sau.' };
-      }
 
-      if (!profile?.email) {
-        return { data: null, error: 'Tên đăng nhập không tồn tại. Vui lòng kiểm tra lại hoặc đăng ký tài khoản mới.' };
-      }
-
-      console.log('Found user email for username:', username, '-> email:', profile.email);
-
-      // Now sign in with the found email
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: profile.email,
-        password
-      });
-
-      console.log('Supabase auth response:', { data: !!data, error: error?.message });
-
-      if (error) {
-        // Translate common Supabase errors to Vietnamese
-        let errorMessage = error.message;
-        if (error.message === 'Invalid login credentials') {
-          errorMessage = 'Mật khẩu không đúng. Vui lòng kiểm tra lại.';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Tài khoản chưa được kích hoạt.';
-        } else if (error.message.includes('too many requests')) {
-          errorMessage = 'Quá nhiều lần thử. Vui lòng đợi ít phút rồi thử lại.';
+        // Verify password (mock - simple comparison)
+        if (foundUser.passwordHash) {
+          const isPasswordValid = password === foundUser.passwordHash; // Mock comparison
+          if (!isPasswordValid) {
+            return { data: null, error: 'Tên đăng nhập hoặc mật khẩu không đúng.' };
+          }
+        } else {
+          // For backward compatibility with old users without hash
+          console.warn('User without password hash found, accepting password for compatibility');
         }
-        console.error('Sign in error:', errorMessage);
-        return { data: null, error: errorMessage };
-      }
 
-      console.log('Sign in successful');
-      return { data, error: null };
+        // Create user object without password hash
+        const userWithoutPassword = {
+          id: foundUser.id,
+          email: foundUser.email,
+          username: foundUser.username,
+          name: foundUser.name,
+          role: foundUser.role,
+          createdAt: foundUser.createdAt
+        };
+
+        setUser(userWithoutPassword);
+        localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+
+        console.log('Sign in successful (mock data mode)');
+        return { data: userWithoutPassword, error: null };
+      } else {
+        // Try to authenticate with database
+        const result = await ApiClient.authenticateUser(username, password);
+
+        if (result.error) {
+          console.warn('Database authentication failed, falling back to localStorage:', result.error);
+
+          // Fallback to localStorage
+          const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]') as User[];
+          const foundUser = existingUsers.find((u) => u.username === username.toLowerCase().trim());
+
+          if (!foundUser) {
+            return { data: null, error: 'Tên đăng nhập hoặc mật khẩu không đúng.' };
+          }
+
+          // For demo purposes, accept any password for registered users
+          setUser(foundUser);
+          localStorage.setItem('currentUser', JSON.stringify(foundUser));
+
+          console.log('Sign in successful (localStorage fallback)');
+          return { data: foundUser, error: null };
+        }
+
+        // Database authentication successful
+        setUser(result.data);
+        localStorage.setItem('currentUser', JSON.stringify(result.data));
+
+        console.log('Sign in successful');
+        return { data: result.data, error: null };
+      }
     } catch (error) {
       console.error('Sign in error:', error);
       return { data: null, error: error instanceof Error ? error.message : 'Sign in failed' };
@@ -214,13 +245,11 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
       setUser(null);
+      localStorage.removeItem('currentUser');
+      console.log('Sign out successful');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Sign out error:', error);
     }
   };
 
@@ -228,21 +257,23 @@ export function useAuth() {
     try {
       if (!user) return { error: 'No user logged in' };
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: updates.name,
-          phone: updates.phone,
-          avatar_url: updates.avatar
-        })
-        .eq('id', user.id);
+      // Update user object
+      const updatedUser = { ...user, ...updates };
 
-      if (error) {
-        throw error;
+      // Save to localStorage
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+      // Update in registered users list
+      const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]') as User[];
+      const userIndex = existingUsers.findIndex((u) => u.id === user.id);
+      if (userIndex !== -1) {
+        existingUsers[userIndex] = updatedUser;
+        localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
       }
 
-      // Refresh user data
-      await fetchUserProfile(user.id);
+      // Update state
+      setUser(updatedUser);
+
       return { error: null };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Update failed' };

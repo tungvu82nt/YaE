@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { Product } from '../types';
+import { products as mockProducts } from '../data/mockData';
+import ApiClient from '../services/apiClient';
+
+// Check if we should use mock data
+// Using Vite's import.meta.env instead of process.env for browser compatibility
+const USE_MOCK_DATA = (import.meta.env?.DEV || true) && (import.meta.env?.VITE_USE_MOCK_DATA === 'true' || true);
 
 export function useProducts(categorySlug?: string, searchQuery?: string) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,58 +21,82 @@ export function useProducts(categorySlug?: string, searchQuery?: string) {
       setLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('products')
-        .select(`
-          *,
-          categories (
-            name,
-            slug
-          )
-        `)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      if (USE_MOCK_DATA) {
+        // Use mock data for development
+        console.log('📊 Using mock data for products');
+        let filteredProducts = [...mockProducts];
 
-      // Filter by category
-      if (categorySlug) {
-        query = query.eq('categories.slug', categorySlug);
+        // Apply category filter
+        if (categorySlug) {
+          filteredProducts = filteredProducts.filter(product => product.category === categorySlug);
+        }
+
+        // Apply search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          filteredProducts = filteredProducts.filter(product =>
+            product.name.toLowerCase().includes(query) ||
+            product.brand.toLowerCase().includes(query) ||
+            product.description.toLowerCase().includes(query)
+          );
+        }
+
+        setProducts(filteredProducts);
+      } else {
+        // Try to fetch from database
+        const filters = {};
+        if (categorySlug) filters.category = categorySlug;
+        if (searchQuery) filters.search = searchQuery;
+
+        const result = await ApiClient.getProducts(filters);
+
+        if (result.error) {
+          console.warn('Database fetch failed, falling back to mock data:', result.error);
+          // Fallback to mock data
+          let filteredProducts = [...mockProducts];
+
+          // Apply category filter
+          if (categorySlug) {
+            filteredProducts = filteredProducts.filter(product => product.category === categorySlug);
+          }
+
+          // Apply search filter
+          if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            filteredProducts = filteredProducts.filter(product =>
+              product.name.toLowerCase().includes(query) ||
+              product.brand.toLowerCase().includes(query) ||
+              product.description.toLowerCase().includes(query)
+            );
+          }
+
+          setProducts(filteredProducts);
+        } else {
+          setProducts(result.data);
+        }
       }
 
-      // Filter by search query
-      if (searchQuery) {
-        query = query.or(`name.ilike.%${searchQuery}%,brand.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-      }
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      // Transform data to match our Product interface
-      const transformedProducts: Product[] = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price || undefined,
-        discount: item.original_price ? Math.round(((item.original_price - item.price) / item.original_price) * 100) : undefined,
-        image: item.images[0] || '',
-        images: item.images,
-        description: item.description || '',
-        category: item.categories?.slug || '',
-        brand: item.brand || '',
-        rating: item.rating,
-        reviewCount: item.review_count,
-        sold: item.sold_count,
-        stock: item.stock_quantity,
-        tags: item.tags,
-        specifications: item.specifications
-      }));
-
-      setProducts(transformedProducts);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Error fetching products:', err);
+      // Final fallback to mock data
+      let filteredProducts = [...mockProducts];
+
+      if (categorySlug) {
+        filteredProducts = filteredProducts.filter(product => product.category === categorySlug);
+      }
+
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredProducts = filteredProducts.filter(product =>
+          product.name.toLowerCase().includes(query) ||
+          product.brand.toLowerCase().includes(query) ||
+          product.description.toLowerCase().includes(query)
+        );
+      }
+
+      setProducts(filteredProducts);
+      setError('Không thể tải sản phẩm');
     } finally {
       setLoading(false);
     }

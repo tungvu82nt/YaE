@@ -1,140 +1,322 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { Order, CartItem } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import { Order, OrderStatusUpdate } from '../types';
+import {
+  mockOrders,
+  getOrdersByUserId,
+  getOrderById,
+  getOrdersByStatus,
+  getOrderStatusUpdates
+} from '../data/mockOrders';
+
+// Using Vite's import.meta.env instead of process.env for browser compatibility
+const USE_MOCK_DATA = (import.meta.env?.DEV || true) && (import.meta.env?.VITE_USE_MOCK_DATA === 'true' || true);
 
 export function useOrders(userId?: string) {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userId) {
-      fetchOrders();
-    }
-  }, [userId]);
+  // Fetch orders
+  const fetchOrders = useCallback(async (status?: Order['status']) => {
+    if (!userId) return;
 
-  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
 
-      const { data, error: fetchError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            *,
-            products (*)
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      if (USE_MOCK_DATA) {
+        console.log('📦 Using mock data for orders');
+        let userOrders = getOrdersByUserId(userId);
 
-      if (fetchError) {
-        throw fetchError;
+        if (status) {
+          userOrders = userOrders.filter(order => order.status === status);
+        }
+
+        // Sort by created date (newest first)
+        userOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        setOrders(userOrders);
+      } else {
+        // TODO: Implement real API call
+        console.log('🔄 Fetching orders from API');
+        // const result = await ApiClient.getUserOrders(userId, status);
+        // setOrders(result);
       }
-
-      // Transform data to match our Order interface
-      const transformedOrders: Order[] = (data || []).map(order => ({
-        id: order.id,
-        userId: order.user_id,
-        items: order.order_items.map((item: any) => ({
-          product: {
-            id: item.products.id,
-            name: item.products.name,
-            price: item.unit_price,
-            image: item.products.images[0] || '',
-            images: item.products.images,
-            description: item.products.description || '',
-            category: '', // Will be populated if needed
-            brand: item.products.brand || '',
-            rating: item.products.rating,
-            reviewCount: item.products.review_count,
-            sold: item.products.sold_count,
-            stock: item.products.stock_quantity,
-            tags: item.products.tags,
-            specifications: item.products.specifications
-          },
-          quantity: item.quantity
-        })),
-        total: order.total_amount,
-        status: order.status,
-        createdAt: order.created_at,
-        shippingAddress: order.shipping_address
-      }));
-
-      setOrders(transformedOrders);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Error fetching orders:', err);
+      setError('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
-  const createOrder = async (items: CartItem[], shippingAddress: any, paymentMethod: string) => {
+  // Get single order
+  const getOrder = useCallback(async (orderId: string): Promise<Order | null> => {
     try {
-      if (!userId) {
-        throw new Error('User must be logged in to create order');
+      if (USE_MOCK_DATA) {
+        const order = getOrderById(orderId);
+        return order || null;
+      } else {
+        // TODO: Implement real API call
+        // return await ApiClient.getOrder(orderId);
+        return null;
       }
-
-      const totalAmount = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-      const shippingFee = totalAmount >= 500000 ? 0 : 25000; // Free shipping for orders over 500k VND
-
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: userId,
-          total_amount: totalAmount + shippingFee,
-          shipping_fee: shippingFee,
-          payment_method: paymentMethod,
-          shipping_address: shippingAddress
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        throw orderError;
-      }
-
-      // Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        unit_price: item.product.price,
-        total_price: item.product.price * item.quantity
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) {
-        throw itemsError;
-      }
-
-      // Update product sold count and stock
-      for (const item of items) {
-        await supabase.rpc('update_product_stock', {
-          product_id: item.product.id,
-          quantity_sold: item.quantity
-        });
-      }
-
-      await fetchOrders();
-      return { data: order, error: null };
-    } catch (error) {
-      return { data: null, error: error instanceof Error ? error.message : 'Order creation failed' };
+    } catch (err) {
+      console.error('Error getting order:', err);
+      return null;
     }
-  };
+  }, []);
+
+  // Update order status
+  const updateOrderStatus = useCallback(async (
+    orderId: string,
+    newStatus: Order['status'],
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      if (USE_MOCK_DATA) {
+        // Update local mock data
+        setOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId
+              ? {
+                  ...order,
+                  status: newStatus,
+                  updatedAt: new Date().toISOString(),
+                  ...(newStatus === 'delivered' && { deliveredAt: new Date().toISOString() })
+                }
+              : order
+          )
+        );
+
+        console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
+        return true;
+      } else {
+        // TODO: Implement real API call
+        // return await ApiClient.updateOrderStatus(orderId, newStatus, notes);
+        return false;
+      }
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      return false;
+    }
+  }, []);
+
+  // Cancel order
+  const cancelOrder = useCallback(async (orderId: string, reason?: string): Promise<boolean> => {
+    return await updateOrderStatus(orderId, 'cancelled', reason);
+  }, [updateOrderStatus]);
+
+  // Get order status updates
+  const getOrderUpdates = useCallback(async (orderId: string): Promise<OrderStatusUpdate[]> => {
+    try {
+      if (USE_MOCK_DATA) {
+        return getOrderStatusUpdates(orderId);
+      } else {
+        // TODO: Implement real API call
+        // return await ApiClient.getOrderStatusUpdates(orderId);
+        return [];
+      }
+    } catch (err) {
+      console.error('Error getting order updates:', err);
+      return [];
+    }
+  }, []);
+
+  // Get orders by status
+  const getOrdersByStatusFilter = useCallback(async (status: Order['status']): Promise<Order[]> => {
+    if (!userId) return [];
+
+    try {
+      if (USE_MOCK_DATA) {
+        return getOrdersByUserId(userId).filter(order => order.status === status);
+      } else {
+        // TODO: Implement real API call
+        return [];
+      }
+    } catch (err) {
+      console.error('Error filtering orders by status:', err);
+      return [];
+    }
+  }, [userId]);
+
+  // Refresh orders
+  const refreshOrders = useCallback(async () => {
+    await fetchOrders();
+  }, [fetchOrders]);
+
+  // Auto-fetch orders when userId changes
+  useEffect(() => {
+    if (userId) {
+      fetchOrders();
+    } else {
+      setOrders([]);
+    }
+  }, [userId, fetchOrders]);
+
+  // Statistics
+  const getOrderStats = useCallback(() => {
+    const totalOrders = orders.length;
+    const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
+    const deliveredOrders = orders.filter(order => order.status === 'delivered').length;
+    const pendingOrders = orders.filter(order => order.status === 'pending' || order.status === 'confirmed' || order.status === 'processing').length;
+    const cancelledOrders = orders.filter(order => order.status === 'cancelled').length;
+
+    return {
+      totalOrders,
+      totalSpent,
+      deliveredOrders,
+      pendingOrders,
+      cancelledOrders,
+      deliveryRate: totalOrders > 0 ? (deliveredOrders / totalOrders * 100).toFixed(1) : '0'
+    };
+  }, [orders]);
 
   return {
     orders,
     loading,
     error,
-    createOrder,
-    refetch: fetchOrders
+    fetchOrders,
+    getOrder,
+    updateOrderStatus,
+    cancelOrder,
+    getOrderUpdates,
+    getOrdersByStatusFilter,
+    refreshOrders,
+    getOrderStats
+  };
+}
+
+// Hook for admin order management
+export function useAdminOrders() {
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch all orders for admin
+  const fetchAllOrders = useCallback(async (status?: Order['status']) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+
+      if (USE_MOCK_DATA) {
+        console.log('📦 Admin: Using mock data for all orders');
+        let orders = [...mockOrders];
+
+        if (status) {
+          orders = orders.filter(order => order.status === status);
+        }
+
+        // Sort by created date (newest first)
+        orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        setAllOrders(orders);
+      } else {
+        // TODO: Implement real API call
+        console.log('🔄 Admin: Fetching all orders from API');
+        // const result = await ApiClient.getAllOrders(status);
+        // setAllOrders(result);
+      }
+    } catch (err) {
+      console.error('Error fetching all orders:', err);
+      setError('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Update order status (admin)
+  const updateOrderStatus = useCallback(async (
+    orderId: string,
+    newStatus: Order['status'],
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      if (USE_MOCK_DATA) {
+        // Update local mock data
+        setAllOrders(prevOrders =>
+          prevOrders.map(order =>
+            order.id === orderId
+              ? {
+                  ...order,
+                  status: newStatus,
+                  updatedAt: new Date().toISOString(),
+                  ...(newStatus === 'delivered' && { deliveredAt: new Date().toISOString() })
+                }
+              : order
+          )
+        );
+
+        console.log(`✅ Admin: Order ${orderId} status updated to ${newStatus}`);
+        return true;
+      } else {
+        // TODO: Implement real API call
+        // return await ApiClient.adminUpdateOrderStatus(orderId, newStatus, notes);
+        return false;
+      }
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      return false;
+    }
+  }, []);
+
+  // Bulk update orders
+  const bulkUpdateOrders = useCallback(async (
+    orderIds: string[],
+    newStatus: Order['status'],
+    notes?: string
+  ): Promise<boolean> => {
+    try {
+      const promises = orderIds.map(orderId =>
+        updateOrderStatus(orderId, newStatus, notes)
+      );
+
+      const results = await Promise.all(promises);
+      return results.every(result => result);
+    } catch (err) {
+      console.error('Error bulk updating orders:', err);
+      return false;
+    }
+  }, [updateOrderStatus]);
+
+  // Get admin statistics
+  const getAdminStats = useCallback(() => {
+    const totalOrders = allOrders.length;
+    const totalRevenue = allOrders.reduce((sum, order) => sum + order.total, 0);
+    const pendingOrders = allOrders.filter(order => order.status === 'pending').length;
+    const processingOrders = allOrders.filter(order => order.status === 'processing').length;
+    const shippingOrders = allOrders.filter(order => order.status === 'shipping').length;
+    const deliveredOrders = allOrders.filter(order => order.status === 'delivered').length;
+    const cancelledOrders = allOrders.filter(order => order.status === 'cancelled').length;
+
+    return {
+      totalOrders,
+      totalRevenue,
+      pendingOrders,
+      processingOrders,
+      shippingOrders,
+      deliveredOrders,
+      cancelledOrders,
+      activeOrders: pendingOrders + processingOrders + shippingOrders
+    };
+  }, [allOrders]);
+
+  // Auto-fetch all orders on mount
+  useEffect(() => {
+    fetchAllOrders();
+  }, [fetchAllOrders]);
+
+  return {
+    allOrders,
+    loading,
+    error,
+    fetchAllOrders,
+    updateOrderStatus,
+    bulkUpdateOrders,
+    getAdminStats
   };
 }

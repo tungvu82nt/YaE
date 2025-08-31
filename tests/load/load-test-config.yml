@@ -1,0 +1,66 @@
+config:
+  target: 'http://localhost:5173'
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: 'Warm up phase'
+    - duration: 120
+      arrivalRate: 10
+      name: 'Load testing phase'
+    - duration: 60
+      arrivalRate: 20
+      name: 'Stress testing phase'
+    - duration: 60
+      arrivalRate: 5
+      name: 'Cool down phase'
+
+scenarios:
+  - name: 'Browse and search'
+    weight: 60
+    flow:
+      - get:
+          url: '/'
+      - think: 2
+      - post:
+          url: '/api/search'
+          json:
+            query: 'iPhone'
+      - think: 3
+      - get:
+          url: '/api/products'
+
+  - name: 'User authentication'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/auth/login'
+          json:
+            email: 'test@example.com'
+            password: 'password123'
+      - think: 1
+      - get:
+          url: '/api/user/profile'
+
+  - name: 'Add to cart and checkout'
+    weight: 20
+    flow:
+      - post:
+          url: '/api/auth/login'
+          json:
+            email: 'test@example.com'
+            password: 'password123'
+      - think: 1
+      - post:
+          url: '/api/cart/add'
+          json:
+            productId: '1'
+            quantity: 1
+      - think: 2
+      - get:
+          url: '/api/cart'
+      - think: 3
+      - post:
+          url: '/api/checkout'
+          json:
+            shippingAddress: '123 Test St'
+            paymentMethod: 'cod'

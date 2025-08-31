@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, User, Menu, Settings, AlertTriangle } from 'lucide-react';
+import { Search, ShoppingCart, User, Settings, AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import AuthModal from './AuthModal';
 import ServerStatusComponent from './ServerStatus';
@@ -9,7 +9,9 @@ export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showServerStatus, setShowServerStatus] = useState(false);
-  const cartItemCount = state.cart.reduce((total, item) => total + item.quantity, 0);
+  const cartItemCount = Array.isArray(state.cart)
+    ? state.cart.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -122,6 +124,42 @@ export default function Header() {
                         <p className="font-medium">{state.user.name}</p>
                         <p className="text-sm text-gray-500">{state.user.email}</p>
                       </div>
+                      <button
+                        onClick={() => {
+                          dispatch({ type: 'SET_CURRENT_PAGE', payload: 'orders' });
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Đơn hàng của tôi
+                      </button>
+                      <button
+                        onClick={() => {
+                          dispatch({ type: 'SET_CURRENT_PAGE', payload: 'profile' });
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Thông tin cá nhân
+                      </button>
+                      <button
+                        onClick={() => {
+                          dispatch({ type: 'SET_CURRENT_PAGE', payload: 'wishlist' });
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Danh sách yêu thích
+                      </button>
+                      <button
+                        onClick={() => {
+                          dispatch({ type: 'SET_CURRENT_PAGE', payload: 'search' });
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Tìm kiếm nâng cao
+                      </button>
                       {state.user.role === 'admin' && (
                         <button
                           onClick={() => dispatch({ type: 'TOGGLE_ADMIN_MODE' })}

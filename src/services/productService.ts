@@ -1,5 +1,5 @@
-import { supabase } from '../lib/supabase';
 import { Product } from '../types';
+import { products as mockProducts } from '../data/mockData';
 
 export class ProductService {
   static async getProducts(filters?: {
@@ -9,40 +9,36 @@ export class ProductService {
     offset?: number;
   }) {
     try {
-      let query = supabase
-        .from('products')
-        .select(`
-          *,
-          categories (
-            name,
-            slug
-          )
-        `)
-        .eq('is_active', true);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 200));
 
+      let filteredProducts = [...mockProducts];
+
+      // Apply category filter
       if (filters?.category) {
-        query = query.eq('categories.slug', filters.category);
+        filteredProducts = filteredProducts.filter(product => product.category === filters.category);
       }
 
+      // Apply search filter
       if (filters?.search) {
-        query = query.or(`name.ilike.%${filters.search}%,brand.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        const searchTerm = filters.search.toLowerCase();
+        filteredProducts = filteredProducts.filter(product =>
+          product.name.toLowerCase().includes(searchTerm) ||
+          product.brand.toLowerCase().includes(searchTerm) ||
+          product.description.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Apply pagination
+      if (filters?.offset) {
+        filteredProducts = filteredProducts.slice(filters.offset);
       }
 
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        filteredProducts = filteredProducts.slice(0, filters.limit);
       }
 
-      if (filters?.offset) {
-        query = query.range(filters.offset, filters.offset + (filters.limit || 20) - 1);
-      }
-
-      query = query.order('created_at', { ascending: false });
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      return { data: data || [], error: null };
+      return { data: filteredProducts, error: null };
     } catch (error) {
       return { data: [], error: error instanceof Error ? error.message : 'Failed to fetch products' };
     }
@@ -50,28 +46,16 @@ export class ProductService {
 
   static async getProductById(id: string) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          categories (
-            name,
-            slug
-          ),
-          reviews (
-            *,
-            profiles (
-              full_name
-            )
-          )
-        `)
-        .eq('id', id)
-        .eq('is_active', true)
-        .single();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 150));
 
-      if (error) throw error;
+      const product = mockProducts.find(p => p.id === id);
 
-      return { data, error: null };
+      if (!product) {
+        return { data: null, error: 'Product not found' };
+      }
+
+      return { data: product, error: null };
     } catch (error) {
       return { data: null, error: error instanceof Error ? error.message : 'Product not found' };
     }
@@ -79,26 +63,31 @@ export class ProductService {
 
   static async createProduct(product: Partial<Product>) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .insert({
-          name: product.name!,
-          slug: product.name!.toLowerCase().replace(/\s+/g, '-'),
-          description: product.description,
-          price: product.price!,
-          original_price: product.originalPrice,
-          brand: product.brand,
-          stock_quantity: product.stock || 0,
-          images: product.images || [],
-          specifications: product.specifications || {},
-          tags: product.tags || []
-        })
-        .select()
-        .single();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      if (error) throw error;
+      const newProduct: Product = {
+        id: `product_${Date.now()}`,
+        name: product.name || '',
+        price: product.price || 0,
+        originalPrice: product.originalPrice,
+        image: product.image || '',
+        images: product.images || [],
+        description: product.description || '',
+        category: product.category || '',
+        brand: product.brand || '',
+        rating: 0,
+        reviewCount: 0,
+        sold: 0,
+        stock: product.stock || 0,
+        tags: product.tags || [],
+        specifications: product.specifications || {}
+      };
 
-      return { data, error: null };
+      // In real implementation, this would save to database
+      console.log('Product created:', newProduct);
+
+      return { data: newProduct, error: null };
     } catch (error) {
       return { data: null, error: error instanceof Error ? error.message : 'Failed to create product' };
     }
@@ -106,26 +95,13 @@ export class ProductService {
 
   static async updateProduct(id: string, updates: Partial<Product>) {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          price: updates.price,
-          original_price: updates.originalPrice,
-          brand: updates.brand,
-          stock_quantity: updates.stock,
-          images: updates.images,
-          specifications: updates.specifications,
-          tags: updates.tags
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 250));
 
-      if (error) throw error;
+      // In real implementation, this would update in database
+      console.log('Product updated:', id, updates);
 
-      return { data, error: null };
+      return { data: { ...updates, id }, error: null };
     } catch (error) {
       return { data: null, error: error instanceof Error ? error.message : 'Failed to update product' };
     }
@@ -133,12 +109,11 @@ export class ProductService {
 
   static async deleteProduct(id: string) {
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: false })
-        .eq('id', id);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      if (error) throw error;
+      // In real implementation, this would delete from database
+      console.log('Product deleted:', id);
 
       return { error: null };
     } catch (error) {
@@ -148,15 +123,18 @@ export class ProductService {
 
   static async getRecommendations(productId: string, limit = 4) {
     try {
-      const { data, error } = await supabase
-        .rpc('get_product_recommendations', {
-          current_product_id: productId,
-          limit_count: limit
-        });
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      if (error) throw error;
+      // Simple recommendation: return random products from same category
+      const product = mockProducts.find(p => p.id === productId);
+      if (!product) return { data: [], error: null };
 
-      return { data: data || [], error: null };
+      const recommendations = mockProducts
+        .filter(p => p.id !== productId && p.category === product.category)
+        .slice(0, limit);
+
+      return { data: recommendations, error: null };
     } catch (error) {
       return { data: [], error: error instanceof Error ? error.message : 'Failed to get recommendations' };
     }

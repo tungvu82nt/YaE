@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface CartProps {
   isOpen: boolean;
   onClose: () => void;
+  onCheckout?: () => void;
 }
 
-export default function Cart({ isOpen, onClose }: CartProps) {
+export default function Cart({ isOpen, onClose, onCheckout }: CartProps) {
   const { state, dispatch } = useApp();
 
   const formatPrice = (price: number) => {
@@ -25,10 +26,9 @@ export default function Cart({ isOpen, onClose }: CartProps) {
     dispatch({ type: 'REMOVE_FROM_CART', payload: productId });
   };
 
-  const totalAmount = state.cart.reduce(
-    (total, item) => total + item.product.price * item.quantity,
-    0
-  );
+  const totalAmount = Array.isArray(state.cart)
+    ? state.cart.reduce((total, item) => total + item.product.price * item.quantity, 0)
+    : 0;
 
   if (!isOpen) return null;
 
@@ -38,7 +38,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold flex items-center space-x-2">
             <ShoppingCart size={24} />
-            <span>Giỏ hàng ({state.cart.length})</span>
+            <span>Giỏ hàng ({Array.isArray(state.cart) ? state.cart.length : 0})</span>
           </h2>
           <button
             onClick={onClose}
@@ -49,14 +49,14 @@ export default function Cart({ isOpen, onClose }: CartProps) {
         </div>
 
         <div className="overflow-y-auto max-h-96">
-          {state.cart.length === 0 ? (
+          {(!Array.isArray(state.cart) || state.cart.length === 0) ? (
             <div className="text-center py-12">
               <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500">Giỏ hàng của bạn đang trống</p>
             </div>
           ) : (
             <div className="p-6 space-y-4">
-              {state.cart.map((item) => (
+              {Array.isArray(state.cart) && state.cart.map((item) => (
                 <div key={item.product.id} className="flex items-center space-x-4 border-b border-gray-100 pb-4 last:border-0">
                   <img
                     src={item.product.image}
@@ -96,7 +96,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
           )}
         </div>
 
-        {state.cart.length > 0 && (
+        {Array.isArray(state.cart) && state.cart.length > 0 && (
           <div className="border-t border-gray-200 p-6">
             <div className="flex justify-between items-center mb-4">
               <span className="text-lg font-semibold">Tổng cộng:</span>
@@ -104,9 +104,15 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                 {formatPrice(totalAmount)}
               </span>
             </div>
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
-              Thanh toán
-            </button>
+                          <button
+                onClick={() => {
+                  onClose();
+                  if (onCheckout) onCheckout();
+                }}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
+              >
+                Thanh toán
+              </button>
           </div>
         )}
       </div>

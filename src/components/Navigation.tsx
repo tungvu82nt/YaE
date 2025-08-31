@@ -10,7 +10,7 @@ export default function Navigation() {
   };
 
   const getIcon = (iconName: string) => {
-    const IconComponent = (Icons as any)[iconName] || Icons.Package;
+    const IconComponent = (Icons as Record<string, React.ComponentType<{ size?: number }>>)[iconName] || Icons.Package;
     return <IconComponent size={20} />;
   };
 

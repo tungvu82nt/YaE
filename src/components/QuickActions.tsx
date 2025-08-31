@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Search } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import Cart from './Cart';
 import { useApp } from '../context/AppContext';
 
 export default function QuickActions() {
   const { state } = useApp();
   const [showCart, setShowCart] = useState(false);
-  const cartItemCount = state.cart.reduce((total, item) => total + item.quantity, 0);
+  const cartItemCount = Array.isArray(state.cart)
+    ? state.cart.reduce((total, item) => total + item.quantity, 0)
+    : 0;
 
   return (
     <>
@@ -25,7 +27,11 @@ export default function QuickActions() {
         </div>
       </button>
 
-      <Cart isOpen={showCart} onClose={() => setShowCart(false)} />
+      <Cart
+        isOpen={showCart}
+        onClose={() => setShowCart(false)}
+        onCheckout={onCheckout}
+      />
     </>
   );
 }

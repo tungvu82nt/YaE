@@ -21,6 +21,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     confirmPassword: ''
   });
 
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +93,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   const resetForm = () => {
     setFormData({
-      email: '',
+      username: '',
       password: '',
       fullName: '',
       confirmPassword: ''
@@ -152,8 +159,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               required
               minLength={3}
               maxLength={20}
-              pattern="[a-zA-Z0-9_-]+"
-              pattern="[a-zA-Z0-9_\-]+"
+              pattern="[a-zA-Z0-9_\-]{3,20}"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Nhập tên đăng nhập (3-20 ký tự)"
             />

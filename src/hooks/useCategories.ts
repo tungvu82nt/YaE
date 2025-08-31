@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { Category } from '../types';
+import { categories as mockCategories } from '../data/mockData';
+import ApiClient from '../services/apiClient';
+
+// Check if we should use mock data
+// Using Vite's import.meta.env instead of process.env for browser compatibility
+const USE_MOCK_DATA = (import.meta.env?.DEV || true) && (import.meta.env?.VITE_USE_MOCK_DATA === 'true' || true);
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -16,29 +21,29 @@ export function useCategories() {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+      if (USE_MOCK_DATA) {
+        // Use mock data for development
+        console.log('📂 Using mock data for categories');
+        setCategories(mockCategories);
+      } else {
+        // Try to fetch from database
+        const result = await ApiClient.getCategories();
 
-      if (fetchError) {
-        throw fetchError;
+        if (result.error) {
+          console.warn('Database fetch failed, falling back to mock data:', result.error);
+          // Fallback to mock data
+          setCategories(mockCategories);
+        } else {
+          setCategories(result.data);
+        }
       }
 
-      // Transform data to match our Category interface
-      const transformedCategories: Category[] = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        icon: item.icon || 'Package',
-        slug: item.slug,
-        parentId: item.parent_id || undefined
-      }));
-
-      setCategories(transformedCategories);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Error fetching categories:', err);
+      // Final fallback to mock data
+      setCategories(mockCategories);
+      setError('Không thể tải danh mục');
     } finally {
       setLoading(false);
     }

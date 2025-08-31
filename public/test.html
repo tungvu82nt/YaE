@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapee Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .status {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Yapee Test Page</h1>
+
+        <div class="status">
+            <h2 class="success">✅ Static HTML Working!</h2>
+            <p>This page loads independently of React/Vite</p>
+            <p>If you can see this, the web server is functioning correctly</p>
+        </div>
+
+        <div class="status">
+            <h2 class="info">🔍 React Debug Information</h2>
+            <ul style="text-align: left; color: white;">
+                <li>✅ HTML Rendering: Working</li>
+                <li>✅ CSS Styling: Working</li>
+                <li>✅ Web Server: Running on port 5174</li>
+                <li>❓ React Components: Need testing</li>
+                <li>❓ Vite Bundling: Need verification</li>
+            </ul>
+        </div>
+
+        <div class="status">
+            <h2 class="info">🚀 Next Steps</h2>
+            <p>Access the main app at: <strong>http://localhost:5174</strong></p>
+            <p>Check browser console for React errors</p>
+            <p>Try refreshing the main page</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('🧪 Test page loaded successfully');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🌐 User Agent:', navigator.userAgent);
+    </script>
+</body>
+</html>

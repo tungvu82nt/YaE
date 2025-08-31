@@ -1,7 +1,8 @@
 import React from 'react';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Heart } from 'lucide-react';
 import { Product } from '../types';
 import { useApp } from '../context/AppContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 interface ProductCardProps {
   product: Product;
@@ -9,7 +10,10 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onClick }: ProductCardProps) {
-  const { dispatch } = useApp();
+  const { dispatch, state } = useApp();
+  const { addToWishlist, checkWishlistStatus } = useUserProfile(state.user?.id);
+
+  const isInWishlist = checkWishlistStatus(product.id);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -21,6 +25,21 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     dispatch({ type: 'ADD_TO_CART', payload: product });
+  };
+
+  const handleToggleWishlist = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!state.user) {
+      alert('Vui lòng đăng nhập để thêm vào danh sách yêu thích!');
+      return;
+    }
+
+    if (isInWishlist) {
+      // In a real app, this would call removeFromWishlist
+      console.log('Remove from wishlist:', product.id);
+    } else {
+      await addToWishlist(product.id, product);
+    }
   };
 
   return (
@@ -73,13 +92,27 @@ export default function ProductCard({ product, onClick }: ProductCardProps) {
           </div>
         </div>
 
-        <button
-          onClick={handleAddToCart}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
-        >
-          <ShoppingCart size={16} />
-          <span>Thêm vào giỏ</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleToggleWishlist}
+            className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors ${
+              isInWishlist
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            <Heart size={16} fill={isInWishlist ? 'currentColor' : 'none'} />
+            <span>{isInWishlist ? 'Đã thích' : 'Yêu thích'}</span>
+          </button>
+
+          <button
+            onClick={handleAddToCart}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+          >
+            <ShoppingCart size={16} />
+            <span>Giỏ hàng</span>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,20 @@
+{"level":"info","message":"Environment: production","service":"yapee-web-server","timestamp":"2025-08-31T06:38:36.081Z"}
+{"level":"info","message":"Is Production: true","service":"yapee-web-server","timestamp":"2025-08-31T06:38:36.093Z"}
+{"level":"info","message":"Port: 3001","service":"yapee-web-server","timestamp":"2025-08-31T06:38:36.093Z"}
+{"level":"info","message":"YA PEE Web Server started on port 3001","service":"yapee-web-server","timestamp":"2025-08-31T06:38:36.124Z"}
+{"level":"info","message":"Received SIGINT. Starting graceful shutdown...","service":"yapee-web-server","timestamp":"2025-08-31T07:33:27.287Z"}
+{"level":"info","message":"Environment: production","service":"yapee-web-server","timestamp":"2025-08-31T07:33:50.848Z"}
+{"level":"info","message":"Is Production: true","service":"yapee-web-server","timestamp":"2025-08-31T07:33:50.863Z"}
+{"level":"info","message":"Port: 3001","service":"yapee-web-server","timestamp":"2025-08-31T07:33:50.880Z"}
+{"level":"info","message":"YA PEE Web Server started on port 3001","service":"yapee-web-server","timestamp":"2025-08-31T07:33:50.916Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:34:06 +0000] \"GET /health HTTP/1.1\" 200 231 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:34:06.944Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:34:06 +0000] \"GET /api/health HTTP/1.1\" 200 106 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:34:06.980Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:34:06 +0000] \"GET / HTTP/1.1\" 200 604 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:34:06.993Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:34:07 +0000] \"GET /nonexistent HTTP/1.1\" 200 604 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:34:07.004Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:36:23 +0000] \"GET /health HTTP/1.1\" 200 232 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:36:23.540Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:36:23 +0000] \"GET /api/health HTTP/1.1\" 200 106 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:36:23.558Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:36:23 +0000] \"GET / HTTP/1.1\" 200 604 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:36:23.569Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:07:36:23 +0000] \"GET /nonexistent HTTP/1.1\" 200 604 \"-\" \"YA-PEE-Production-Test/1.0\"","service":"yapee-web-server","timestamp":"2025-08-31T07:36:23.578Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:08:10:53 +0000] \"GET /api/health HTTP/1.1\" 200 106 \"-\" \"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.5848\"","service":"yapee-web-server","timestamp":"2025-08-31T08:10:53.290Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:08:15:39 +0000] \"GET /api/products HTTP/1.1\" - - \"-\" \"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.5848\"","service":"yapee-web-server","timestamp":"2025-08-31T08:15:39.359Z"}
+{"level":"info","message":"::1 - - [31/Aug/2025:08:20:55 +0000] \"GET /api/products HTTP/1.1\" - - \"-\" \"Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.19041.5848\"","service":"yapee-web-server","timestamp":"2025-08-31T08:20:55.512Z"}
