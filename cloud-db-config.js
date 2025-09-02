@@ -11,11 +11,11 @@ dotenv.config();
 const cloudDbConfig = {
   // Primary Internal Connection (Recommended for VPC)
   primary: {
-    host: process.env.DB_HOST || 'rm-gs5wmnw28364t27ia.mysql.singapore.rds.aliyuncs.com',
+    host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT) || 3306,
-    user: process.env.DB_USER || 'kk1213',
-    password: process.env.DB_PASSWORD || 'Dh1206@@',
-    database: process.env.DB_NAME || 'kk121',
+    user: process.env.DB_USER || 'yapee_user',
+    password: process.env.DB_PASSWORD || 'password123',
+    database: process.env.DB_NAME || 'yapee_db',
     connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
     queueLimit: parseInt(process.env.DB_QUEUE_LIMIT) || 0,
     timezone: process.env.DB_TIMEZONE || '+08:00',
@@ -29,11 +29,11 @@ const cloudDbConfig = {
 
   // External Connection (Fallback)
   external: {
-    host: process.env.DB_HOST_EXTERNAL || 'rm-gs5wmnw28364t27iago.mysql.singapore.rds.aliyuncs.com',
+    host: process.env.DB_HOST_EXTERNAL || 'localhost',
     port: parseInt(process.env.DB_PORT_EXTERNAL) || 3306,
-    user: process.env.DB_USER || 'kk1213',
-    password: process.env.DB_PASSWORD || 'Dh1206@@',
-    database: process.env.DB_NAME || 'kk121',
+    user: process.env.DB_USER || 'yapee_user',
+    password: process.env.DB_PASSWORD || 'password123',
+    database: process.env.DB_NAME || 'yapee_db',
     connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
     queueLimit: parseInt(process.env.DB_QUEUE_LIMIT) || 0,
     timezone: process.env.DB_TIMEZONE || '+08:00',
