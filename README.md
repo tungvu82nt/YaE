@@ -62,7 +62,7 @@ npm run dev
 ```
 
 ### 🌐 Truy cập
-- Frontend: http://localhost:5174
+- Frontend: http://localhost:5173
 - Backend API: http://localhost:3001
 
 ## 📁 Cấu trúc dự án
@@ -77,7 +77,7 @@ yapee-ecommerce/
 │   ├── data/           # Mock data
 │   └── context/        # React Context
 ├── server/             # Backend API
-├── database/           # DB schema & migrations
+├── migrations/           # DB schema & migrations
 ├── public/             # Static assets
 └── docs/               # Documentation
 ```

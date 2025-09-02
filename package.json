@@ -21,7 +21,7 @@
     "test:performance": "npm run build && lighthouse http://localhost:5173 --output=json --output-path=./performance-report.json",
     "test:load": "artillery quick --count 50 --num 10 http://localhost:5173",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:performance",
-    "db:migrate": "node scripts/create-database.js",
+    "db:migrate": "node scripts/run-migration.js",
     "db:seed": "node scripts/import-mock-data.js",
     "db:test": "node scripts/test-db-setup.js",
     "db:reset": "npm run db:migrate && npm run db:seed",
@@ -32,7 +32,8 @@
     "serve:local": "node scripts/start-production.js",
     "test:production": "node test-production-server.js",
     "test:all:local": "npm run test:run && npm run test:production",
-    "build:analyze": "npm run build && npx vite-bundle-analyzer dist/assets/*.js"
+    "build:analyze": "npm run build && npx vite-bundle-analyzer dist/assets/*.js",
+    "db:create": "node scripts/create-database.js"
   },
   "keywords": [
     "ecommerce",
@@ -48,7 +49,7 @@
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -73,7 +74,6 @@
     "sirv": "^2.0.4",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
-    "tailwindcss": "^3.4.1",
     "uuid": "^9.0.1",
     "winston": "^3.12.0"
   },
